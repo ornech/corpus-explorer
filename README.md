@@ -55,6 +55,7 @@ PDF scannés (option `ocr` d'un document) : `sudo apt install ocrmypdf tesseract
 ```bash
 python3 -m uvicorn corpus_explorer.api:app --port 8765
 ```
+<img width="1865" height="890" alt="image" src="https://github.com/user-attachments/assets/3dada512-fe65-4b99-b9b5-13ac36203438" />
 
 Puis ouvrir <http://localhost:8765/> : la page des projets donne l'état de chaque projet (documents, passages,
 fraîcheur de l'index et de la carte) et lance les mises à jour en tâche de fond (« Tout mettre à jour » :
