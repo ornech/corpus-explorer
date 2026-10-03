@@ -1,0 +1,4 @@
+{
+  "_note": "Ordre d'affichage des familles de documents = ordre des couleurs sur la carte (8 au plus ; au-delà, les familles suivantes sont regroupées dans la dernière). Chaque document de corpus.json désigne sa famille par son nom.",
+  "familles": []
+}

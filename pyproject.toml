@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "corpus-explorer"
+version = "0.1.0"
+description = "Moteur de corpus documentaire : passages fidèles et sourcés, recherche par mot et par le sens, carte des sujets"
+requires-python = ">=3.10"
+dependencies = [
+    "pymupdf>=1.24",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "pydantic>=2.6",
+    "pyyaml>=6",
+    "numpy>=1.24",
+    "scikit-learn>=1.3",
+    "sentence-transformers>=2.7",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "httpx>=0.27"]
+
+[tool.setuptools]
+packages = ["corpus_explorer", "corpus_explorer.extracteurs"]
+
+[tool.setuptools.package-data]
+corpus_explorer = ["schema.sql", "pages/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

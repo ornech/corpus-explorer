@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Projets — corpus-explorer</title>
+<style>
+:root {
+  color-scheme: light;
+  --fond:#f4f4f2; --surface:#fcfcfb; --carte:#ffffff; --texte:#0b0b0b; --texte-2:#52514e; --discret:#6b6a66;
+  --bord:#dcdbd6; --accent:#2a78d6; --sur-accent:#ffffff; --code:#efeeea;
+  --bon:#0a7f0a; --moyen:#9a6700; --mauvais:#c03030;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --fond:#111110; --surface:#1a1a19; --carte:#21211f; --texte:#ffffff; --texte-2:#c3c2b7; --discret:#9a998f;
+  --bord:#3a3a37; --accent:#3987e5; --sur-accent:#ffffff; --code:#2a2a28;
+  --bon:#3cc13c; --moyen:#fab219; --mauvais:#ef6b6b; } }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --fond:#111110; --surface:#1a1a19; --carte:#21211f; --texte:#ffffff; --texte-2:#c3c2b7; --discret:#9a998f;
+  --bord:#3a3a37; --accent:#3987e5; --sur-accent:#ffffff; --code:#2a2a28;
+  --bon:#3cc13c; --moyen:#fab219; --mauvais:#ef6b6b; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--fond); color:var(--texte); font:15px/1.5 system-ui, sans-serif; }
+nav.site { display:flex; align-items:center; gap:8px; padding:4px 16px; font-size:13px; color:var(--discret);
+  border-bottom:1px solid var(--bord); background:var(--surface); } nav.site b { color:var(--texte); }
+nav.site a { color:var(--discret); } nav.site a:hover { color:var(--texte); }
+nav.site .onglets { margin-left:auto; display:flex; gap:14px; } nav.site [aria-current] { color:var(--texte); font-weight:600; }
+main { max-width:1100px; margin:0 auto; padding:20px 16px 48px; }
+h1 { font-size:22px; margin:4px 0 4px; } .discret { color:var(--discret); font-size:13px; }
+code { background:var(--code); padding:1px 5px; border-radius:4px; font-size:13px; }
+.projet { background:var(--carte); border:1px solid var(--bord); border-radius:10px; padding:16px 18px; margin-top:16px; }
+.projet h2 { font-size:18px; margin:0; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+.projet h2 .discret { font-weight:400; }
+.chiffres { display:flex; flex-wrap:wrap; gap:6px 22px; margin:10px 0 12px; }
+.chiffres div { font-size:13px; color:var(--texte-2); } .chiffres b { color:var(--texte); font-size:15px; }
+.etat { display:inline-flex; align-items:center; gap:5px; font-weight:600; }
+.etat::before { font-weight:700; } .etat.bon { color:var(--bon); } .etat.bon::before { content:'✓'; }
+.etat.moyen { color:var(--moyen); } .etat.moyen::before { content:'!'; }
+.etat.mauvais { color:var(--mauvais); } .etat.mauvais::before { content:'✕'; }
+.etat.encours { color:var(--accent); } .etat.encours::before { content:'⟳'; }
+.liens, .actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.liens { margin-bottom:12px; }
+a.bouton, button { font:inherit; font-size:14px; border:1px solid var(--bord); background:var(--surface); color:var(--texte);
+  border-radius:6px; padding:5px 12px; cursor:pointer; text-decoration:none; }
+a.bouton.principal, button.principal { background:var(--accent); border-color:var(--accent); color:var(--sur-accent); }
+a.bouton[aria-disabled="true"] { opacity:.45; pointer-events:none; }
+button:disabled { opacity:.45; cursor:not-allowed; }
+button:hover:not(:disabled), a.bouton:hover { border-color:var(--texte-2); }
+.actions .titre { font-size:13px; color:var(--discret); margin-right:2px; }
+.tache { margin-top:12px; font-size:13px; }
+pre.journal { background:var(--code); border-radius:6px; padding:10px; max-height:320px; overflow:auto; font-size:12px;
+  white-space:pre-wrap; margin:8px 0 0; }
+details { margin-top:10px; } summary { cursor:pointer; font-size:14px; color:var(--texte-2); }
+.tableau { overflow-x:auto; }
+table { border-collapse:collapse; width:100%; font-size:13px; margin-top:8px; }
+th, td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--bord); vertical-align:top; }
+th { color:var(--discret); font-weight:600; } td.n { text-align:right; font-variant-numeric:tabular-nums; }
+.alerte { color:var(--mauvais); font-size:13px; margin:6px 0; }
+.aide { margin-top:28px; font-size:14px; color:var(--texte-2); }
+.aide li { margin:4px 0; }
+#message { min-height:1.5em; }
+.titre-page { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+dialog { border:1px solid var(--bord); border-radius:10px; background:var(--carte); color:var(--texte); padding:20px 22px;
+  width:min(480px, calc(100vw - 32px)); }
+dialog::backdrop { background:rgb(0 0 0 / .4); }
+dialog h2 { font-size:18px; margin:0 0 12px; }
+dialog label { display:block; font-size:14px; font-weight:600; margin-top:12px; }
+dialog input { font:inherit; width:100%; margin-top:4px; padding:6px 8px; border:1px solid var(--bord); border-radius:6px;
+  background:var(--surface); color:var(--texte); }
+dialog .aide-champ { font-size:12px; color:var(--discret); margin-top:3px; }
+dialog .boutons { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; flex-wrap:wrap; }
+dialog.large { width:min(760px, calc(100vw - 32px)); max-height:calc(100vh - 32px); }
+dialog select, dialog textarea { font:inherit; width:100%; margin-top:4px; padding:6px 8px; border:1px solid var(--bord);
+  border-radius:6px; background:var(--surface); color:var(--texte); }
+dialog textarea { font-family:ui-monospace, monospace; font-size:13px; min-height:70px; }
+dialog fieldset { border:0; padding:0; margin:12px 0 0; } dialog legend { font-size:14px; font-weight:600; padding:0; }
+dialog fieldset label { display:flex; gap:8px; align-items:baseline; font-weight:400; margin-top:6px; }
+dialog fieldset input { width:auto; margin:0; }
+.champs { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:0 16px; }
+.champs .large { grid-column:1 / -1; }
+@media (max-width:600px) { .champs { grid-template-columns:1fr; } }
+.profil { font-size:13px; color:var(--texte-2); background:var(--surface); border:1px solid var(--bord); border-radius:6px;
+  padding:8px 12px; margin:4px 0 8px; }
+.profil ul { margin:4px 0 0; padding-left:18px; } .profil li { margin:2px 0; }
+.a-declarer { font-size:13px; margin:8px 0; display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; }
+.a-declarer button, td.gestes button { font-size:13px; padding:2px 10px; }
+td.gestes { white-space:nowrap; } td.gestes button + button { margin-left:4px; }
+.obligatoire::after { content:' *'; color:var(--mauvais); }
+</style>
+</head>
+<body>
+<nav class="site" aria-label="Pages"><b>corpus-explorer</b>
+  <span class="onglets"><span aria-current="page">Projets</span><a href="/docs">API</a></span></nav>
+<main>
+  <div class="titre-page"><h1>Projets</h1>
+    <button class="principal" type="button" id="nouveau">+ Nouveau projet</button></div>
+  <p class="discret">Chaque projet est un dossier de <code>projets/</code> qui contient un <code>corpus.json</code>.
+    Les actions tournent en tâche de fond ; cette page suit leur avancement.</p>
+  <div id="message" role="status" aria-live="polite"></div>
+  <div id="liste"></div>
+  <dialog id="dialogue" aria-labelledby="titre-dialogue">
+    <form id="formNouveau" method="dialog">
+      <h2 id="titre-dialogue">Nouveau projet</h2>
+      <label for="nvTitre">Titre</label>
+      <input id="nvTitre" required maxlength="120" placeholder="ex. Veille réglementaire énergie">
+      <label for="nvNom">Nom du dossier</label>
+      <input id="nvNom" required pattern="[a-z0-9][a-z0-9_\-]{0,63}" maxlength="64" placeholder="ex. veille-energie">
+      <div class="aide-champ">projets/&lt;nom&gt; : minuscules, chiffres, tirets. Il sert aussi dans les adresses.</div>
+      <label for="nvLangue">Langue principale</label>
+      <input id="nvLangue" required value="fr" pattern="[a-z]{2,3}(-[A-Z]{2})?" maxlength="6">
+      <div class="aide-champ">Code de langue : fr, en, de…</div>
+      <p class="alerte" id="nvErreur" role="alert"></p>
+      <div class="boutons"><button type="button" id="nvAnnuler">Annuler</button>
+        <button class="principal" type="submit">Créer le projet</button></div>
+    </form>
+  </dialog>
+  <dialog id="dlgPdf" class="large" aria-labelledby="titre-pdf">
+    <h2 id="titre-pdf"><span id="pdMode">Ajouter un PDF</span> — <span id="pdProjet"></span></h2>
+    <div id="pdEtape1">
+      <label for="pdFichier">Fichier PDF</label>
+      <input id="pdFichier" type="file" accept="application/pdf,.pdf">
+      <div class="aide-champ">Le fichier est copié dans <code>sources/</code> du projet, puis analysé : la fiche du
+        document est pré-remplie à partir du PDF. Elle est à vérifier avant l'ingestion.</div>
+      <p class="alerte" id="pdErreur1" role="alert"></p>
+      <div class="boutons"><button type="button" data-fermer>Annuler</button>
+        <button class="principal" type="button" id="pdEnvoyer">Envoyer et analyser</button></div>
+    </div>
+    <form id="formPdf" hidden>
+      <div class="profil" id="pdProfil"></div>
+      <div class="champs">
+        <div><label for="pdId" class="obligatoire">Identifiant</label>
+          <input id="pdId" required pattern="[A-Z0-9][A-Z0-9\-]{1,63}" maxlength="64">
+          <div class="aide-champ">EDITEUR-SUJET-ANNEE, majuscules et tirets ; il sert dans chaque citation.</div></div>
+        <div><label for="pdLangue" class="obligatoire">Langue</label>
+          <input id="pdLangue" required pattern="[a-z]{2,3}(-[A-Z]{2})?" maxlength="6">
+          <div class="aide-champ">fr, en, de…</div></div>
+        <div class="large"><label for="pdTitre" class="obligatoire">Titre exact</label>
+          <input id="pdTitre" required maxlength="300"></div>
+        <div><label for="pdEditeur" class="obligatoire">Éditeur ou auteur</label>
+          <input id="pdEditeur" required maxlength="200" placeholder="ou « inconnu »"></div>
+        <div><label for="pdAnnee">Année</label><input id="pdAnnee" type="number" min="1000" max="2100"></div>
+        <div><label for="pdVersion">Version</label><input id="pdVersion" maxlength="60"></div>
+        <div><label for="pdFamille">Famille</label><input id="pdFamille" list="pdFamilles" maxlength="60">
+          <datalist id="pdFamilles"></datalist>
+          <div class="aide-champ">Couleur sur la carte ; choisir une famille existante ou en nommer une nouvelle.</div></div>
+        <div class="large"><label for="pdUrl">Adresse officielle</label><input id="pdUrl" type="url" maxlength="500"></div>
+        <div class="large"><label for="pdLicence" class="obligatoire">Licence</label>
+          <input id="pdLicence" required maxlength="300" placeholder="telle qu'écrite dans le document, ou « inconnue »">
+          <div class="aide-champ" id="pdMentions"></div></div>
+      </div>
+      <fieldset><legend class="obligatoire">Diffusion des extraits</legend>
+        <label><input type="radio" name="pdDiffusion" value="public" required> publique : document librement diffusable</label>
+        <label><input type="radio" name="pdDiffusion" value="restreint"> restreinte : ouvrage sous droits, extraits à ne pas
+          diffuser (rappelé à chaque export)</label></fieldset>
+      <div class="champs">
+        <div><label for="pdExtracteur">Extracteur</label><select id="pdExtracteur"></select>
+          <div class="aide-champ">generique : texte courant ; diapositives : diaporama exporté en PDF.</div></div>
+      </div>
+      <fieldset><legend>PDF scanné</legend>
+        <label><input type="checkbox" id="pdOcr"> refaire la reconnaissance de caractères (OCR, Tesseract)</label>
+        <div class="aide-champ" id="pdOcrAide">À cocher pour un scan sans texte ou dont le texte est abîmé (mots coupés,
+          lettres remplacées). Le PDF d'origine reste intact ; environ 3 s par page à l'ingestion.<span class="alerte" id="pdOcrAbsent"></span></div></fieldset>
+      <details><summary>Options d'extraction (avancé)</summary>
+        <textarea id="pdOptions" spellcheck="false" aria-label="Options d'extraction, en JSON"></textarea>
+        <div class="aide-champ">JSON proposé par l'analyse : pages_ignorees (numéros à partir de 0), remplacements,
+          ligatures…</div></details>
+      <p class="alerte" id="pdErreur2" role="alert"></p>
+      <div class="boutons">
+        <button type="button" id="pdProposer" hidden title="Remplace les champs par ce que l'analyse du PDF propose">Reprendre les propositions de l'analyse</button>
+        <button type="button" id="pdSupprimer" title="Retire le fichier de sources/">Supprimer le PDF</button>
+        <button type="button" data-fermer id="pdFermer" title="Le PDF reste dans sources/, à déclarer plus tard">Plus tard</button>
+        <button class="principal" type="submit" id="pdValider">Déclarer et ingérer</button></div>
+    </form>
+  </dialog>
+  <section class="aide">
+    <h2 style="font-size:16px">Ajouter un projet ou une source</h2>
+    <ul>
+      <li>Nouveau projet : bouton « + Nouveau projet » en haut de la page. Il crée le dossier <code>projets/&lt;nom&gt;/</code>
+        avec un corpus vide.</li>
+      <li>Nouvelle source : bouton « + Ajouter un PDF » du projet. Le PDF est analysé, la fiche du document est
+        pré-remplie, puis l'ingestion, l'index de sens, la carte et le contrôle du document s'enchaînent ; le journal
+        donne le résultat du contrôle.</li>
+      <li>Erreur dans une fiche (titre, auteur, licence…) : « Modifier… » dans la liste des documents ; le PDF est
+        réanalysé à l'ouverture. « Réanalyser » réextrait le document (après un changement d'extracteur par exemple).</li>
+      <li>Un PDF déposé directement dans <code>projets/&lt;nom&gt;/sources/</code> apparaît dans « PDF à déclarer ».</li>
+      <li>Cas difficiles (PDF scanné, tableaux, colonnes à sens propre) : la procédure <code>/ajouter-source</code> dans
+        Claude Code, qui peut écrire un extracteur propre au projet.</li>
+    </ul>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nombre = n => Number(n).toLocaleString('fr-FR');
+const date = s => s ? new Date(s).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+const NIVEAU = { 'à jour': 'bon', 'absent': 'mauvais', 'absente': 'mauvais', 'périmé': 'moyen', 'périmée': 'moyen',
+  'à reconstruire': 'moyen', 'terminée': 'bon', 'en cours': 'encours', 'à revoir': 'moyen', 'échec': 'mauvais',
+  'interrompue': 'mauvais' };
+const etat = (s) => `<span class="etat ${NIVEAU[s] || ''}">${esc(s)}</span>`;
+const ACTIONS = [['ingestion', 'Ingérer'], ['controle', 'Contrôler'], ['semantique', 'Index de sens'], ['carte', 'Carte']];
+const ouverts = new Set();               // détails dépliés, gardés d'un rafraîchissement à l'autre
+let suivi = null;
+
+function rendre(projets) {
+  if (!projets.length) {
+    $('liste').innerHTML = '<p>Aucun projet : créer un dossier dans <code>projets/</code> (voir ci-dessous).</p>';
+    return;
+  }
+  $('liste').innerHTML = projets.map(p => {
+    const t = p.tache, occupe = t && t.etat === 'en cours';
+    const base = `/projets/${encodeURIComponent(p.nom)}`;
+    const docs = p.detail.map(d => `<tr><td>${esc(d.id)}</td><td>${esc(d.titre)}</td><td>${esc(d.famille || '')}</td>
+      <td>${esc(d.extracteur)}</td><td>${d.source ? 'présente' : '<span class="etat mauvais">manquante</span>'}</td>
+      <td class="n">${d.passages == null ? '<span class="etat moyen">non ingéré</span>' : nombre(d.passages)}</td>
+      <td>${esc(date(d.ingere_le))}</td>
+      <td class="gestes"><button type="button" data-modifier="${esc(d.id)}" title="Corriger la fiche (titre, auteur, licence…) ; le PDF est réanalysé">Modifier…</button>
+        <button type="button" data-reanalyser="${esc(d.id)}" ${occupe || !d.source ? 'disabled' : ''}
+          title="Réextraire le document, puis index, carte et contrôle">Réanalyser</button></td></tr>`).join('');
+    return `<article class="projet" data-nom="${esc(p.nom)}">
+      <h2>${esc(p.titre)} <span class="discret">projets/${esc(p.nom)}</span></h2>
+      ${p.erreur ? `<p class="alerte">${esc(p.erreur)}</p>` : ''}
+      <div class="chiffres">
+        <div><b>${nombre(p.documents)}</b> documents · ${nombre(p.ingeres)} ingérés</div>
+        <div><b>${nombre(p.passages)}</b> passages</div>
+        <div>Index de sens : ${etat(p.index)}</div>
+        <div>Carte : ${etat(p.carte)}</div>
+        <div>${nombre(p.evaluations)} jugements de pertinence</div>
+      </div>
+      ${p.sources_manquantes ? `<p class="alerte">${p.sources_manquantes} source(s) déclarée(s) dans corpus.json mais absente(s) du dossier.</p>` : ''}
+      ${p.hors_corpus.length ? `<p class="alerte">En base mais retirés de corpus.json : ${esc(p.hors_corpus.join(', '))}.</p>` : ''}
+      <div class="liens">
+        <a class="bouton principal" href="${base}/carte" ${p.carte === 'absente' ? 'aria-disabled="true"' : ''}>Ouvrir la carte</a>
+        <a class="bouton" href="${base}/essai" ${p.index === 'absent' ? 'aria-disabled="true"' : ''}>Essai de pertinence</a>
+        <button type="button" data-ajout ${p.erreur ? 'disabled' : ''}>+ Ajouter un PDF</button>
+      </div>
+      ${p.a_declarer.length ? `<div class="a-declarer"><span class="etat moyen">PDF à déclarer :</span>
+        ${p.a_declarer.map(f => `<span>${esc(f)} <button type="button" data-declarer="${esc(f)}">Déclarer…</button></span>`).join('')}
+      </div>` : ''}
+      <div class="actions"><span class="titre">Mettre à jour :</span>
+        <button class="principal" data-action="tout" ${occupe || !p.documents ? 'disabled' : ''}
+          title="Ingestion, puis index de sens, puis carte">Tout mettre à jour</button>
+        ${ACTIONS.map(([a, l]) => `<button data-action="${a}" ${occupe || !p.documents ? 'disabled' : ''}>${l}</button>`).join('')}
+      </div>
+      ${t ? `<div class="tache">Dernière tâche : <b>${esc(t.libelle)}</b> — ${etat(t.etat)}
+          ${occupe && t.etape ? ` (étape : ${esc(t.etape)})` : ''} · ${esc(date(t.debut))}${t.fin ? ' → ' + esc(date(t.fin)) : ''}
+        <details data-ouvert="journal-${esc(p.nom)}" data-tache="${esc(t.id)}"><summary>Journal</summary>
+          <pre class="journal">chargement…</pre></details></div>` : ''}
+      <details data-ouvert="docs-${esc(p.nom)}"><summary>Documents (${p.detail.length})</summary>
+        <div class="tableau"><table><thead><tr><th>ID</th><th>Titre</th><th>Famille</th><th>Extracteur</th><th>Source</th>
+          <th>Passages</th><th>Ingéré le</th><th></th></tr></thead><tbody>${docs}</tbody></table></div></details>
+    </article>`;
+  }).join('');
+  for (const d of document.querySelectorAll('details[data-ouvert]')) {
+    d.open = ouverts.has(d.dataset.ouvert);
+    d.addEventListener('toggle', () => { d.open ? ouverts.add(d.dataset.ouvert) : ouverts.delete(d.dataset.ouvert);
+      if (d.open && d.dataset.tache) journal(d); });
+    if (d.open && d.dataset.tache) journal(d);
+  }
+}
+
+async function journal(d) {
+  const nom = d.closest('.projet').dataset.nom;
+  const r = await fetch(`/projets/${encodeURIComponent(nom)}/taches/${d.dataset.tache}`);
+  const pre = d.querySelector('pre');
+  pre.textContent = r.ok ? ((await r.json()).journal || '(journal vide)') : `journal indisponible (erreur ${r.status})`;
+  pre.scrollTop = pre.scrollHeight;
+}
+
+async function charger() {
+  try {
+    const r = await fetch('/projets');
+    if (!r.ok) throw new Error(`erreur ${r.status}`);
+    const projets = await r.json();
+    for (const p of projets) PROJETS.set(p.nom, p);
+    rendre(projets);
+    // suivi des tâches en cours : rafraîchir toutes les 2 s tant qu'il y en a une
+    clearTimeout(suivi);
+    if (projets.some(p => p.tache && p.tache.etat === 'en cours')) suivi = setTimeout(charger, 2000);
+  } catch (e) {
+    $('message').textContent = `Impossible de lire les projets : ${e.message}`;
+  }
+}
+
+const PROJETS = new Map();              // dernier état lu de chaque projet (familles, extracteurs)
+
+$('liste').addEventListener('click', async e => {
+  const art = e.target.closest('.projet');
+  if (e.target.closest('button[data-ajout]')) return ouvrirAjout(art.dataset.nom);
+  const dec = e.target.closest('button[data-declarer]');
+  if (dec) return ouvrirAjout(art.dataset.nom, dec.dataset.declarer);
+  const mod = e.target.closest('button[data-modifier]');
+  if (mod) return ouvrirFiche(art.dataset.nom, mod.dataset.modifier);
+  const rea = e.target.closest('button[data-reanalyser]');
+  if (rea) { rea.disabled = true; return reanalyser(art.dataset.nom, rea.dataset.reanalyser); }
+  const b = e.target.closest('button[data-action]');
+  if (!b) return;
+  const nom = b.closest('.projet').dataset.nom;
+  b.disabled = true;
+  const r = await fetch(`/projets/${encodeURIComponent(nom)}/taches`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: b.dataset.action }) });
+  const rep = await r.json().catch(() => ({}));
+  $('message').textContent = r.ok ? `${rep.libelle} lancé pour ${nom}.` : `Lancement refusé : ${rep.detail || r.status}`;
+  ouverts.add(`journal-${nom}`);
+  charger();
+});
+
+// ───── Nouveau projet ─────
+const slug = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
+let nomSaisi = false;                    // le nom suit le titre tant qu'on ne l'a pas modifié à la main
+$('nouveau').addEventListener('click', () => {
+  $('formNouveau').reset(); nomSaisi = false; $('nvErreur').textContent = '';
+  $('dialogue').showModal(); $('nvTitre').focus();
+});
+$('nvAnnuler').addEventListener('click', () => $('dialogue').close());
+$('nvTitre').addEventListener('input', () => { if (!nomSaisi) $('nvNom').value = slug($('nvTitre').value); });
+$('nvNom').addEventListener('input', () => { nomSaisi = true; });
+$('formNouveau').addEventListener('submit', async e => {
+  e.preventDefault();
+  const corps = { nom: $('nvNom').value.trim(), titre: $('nvTitre').value.trim(), langue: $('nvLangue').value.trim() };
+  const r = await fetch('/projets', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(corps) });
+  const rep = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    $('nvErreur').textContent = typeof rep.detail === 'string' ? rep.detail
+      : 'Saisie invalide : vérifier le nom du dossier (minuscules, chiffres, tirets) et la langue.';
+    return;
+  }
+  $('dialogue').close();
+  $('message').innerHTML = `Projet « ${esc(rep.titre)} » créé. Déposer les PDF dans <code>projets/${esc(rep.nom)}/sources/</code>,
+    puis lancer <code>/ajouter-source</code> dans Claude Code.`;
+  await charger();
+  document.querySelector(`.projet[data-nom="${CSS.escape(rep.nom)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+// ───── Ajout d'un PDF : dépôt et analyse, puis fiche du document à vérifier, puis ingestion ─────
+let ajout = null;                        // { nom, fichier, edition, profil } : projet, fichier, document modifié (sinon ajout)
+const urlProjet = nom => `/projets/${encodeURIComponent(nom)}`;
+const detail = rep => typeof rep.detail === 'string' ? rep.detail
+  : Array.isArray(rep.detail) ? rep.detail.map(d => `${(d.loc || []).slice(-1)[0]} : ${d.msg}`).join(' ; ') : '';
+
+function mode(edition) {
+  $('pdMode').textContent = edition ? `Modifier la fiche de ${edition}` : 'Ajouter un PDF';
+  $('pdSupprimer').hidden = !!edition; $('pdProposer').hidden = !edition;
+  $('pdFermer').textContent = edition ? 'Annuler' : 'Plus tard';
+  $('pdFermer').title = edition ? '' : 'Le PDF reste dans sources/, à déclarer plus tard';
+  $('pdValider').textContent = edition ? 'Enregistrer et réingérer' : 'Déclarer et ingérer';
+}
+
+function ouvrirAjout(nom, fichier) {
+  const p = PROJETS.get(nom);
+  ajout = { nom, fichier: null, edition: null, profil: null };
+  mode(null);
+  $('pdProjet').textContent = p ? p.titre : nom;
+  $('pdFichier').value = ''; $('pdErreur1').textContent = ''; $('pdErreur2').textContent = '';
+  $('pdEtape1').hidden = !!fichier; $('formPdf').hidden = true;
+  $('dlgPdf').showModal();
+  if (fichier) analyser(fetch(`${urlProjet(nom)}/sources/${encodeURIComponent(fichier)}/profil`), $('pdErreur1'));
+}
+
+for (const b of document.querySelectorAll('#dlgPdf [data-fermer]'))
+  b.addEventListener('click', () => { $('dlgPdf').close(); charger(); });
+
+$('pdEnvoyer').addEventListener('click', () => {
+  const f = $('pdFichier').files[0];
+  if (!f) { $('pdErreur1').textContent = 'Choisir un fichier PDF.'; return; }
+  $('pdErreur1').textContent = ''; $('pdEnvoyer').disabled = true; $('pdEnvoyer').textContent = 'Envoi et analyse…';
+  analyser(fetch(`${urlProjet(ajout.nom)}/sources?fichier=${encodeURIComponent(f.name)}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: f }), $('pdErreur1'))
+    .finally(() => { $('pdEnvoyer').disabled = false; $('pdEnvoyer').textContent = 'Envoyer et analyser'; });
+});
+
+async function analyser(requete, erreur) {
+  let r;
+  try { r = await requete; } catch { erreur.textContent = 'API injoignable.'; $('pdEtape1').hidden = false; return; }
+  const rep = await r.json().catch(() => ({}));
+  if (!r.ok) { erreur.textContent = detail(rep) || `erreur ${r.status}`; $('pdEtape1').hidden = false; return; }
+  ajout.fichier = rep.fichier; ajout.profil = rep.profil;
+  remplir(rep.profil, PROJETS.get(ajout.nom));
+  $('pdEtape1').hidden = true; $('formPdf').hidden = false; $('pdId').focus();
+}
+
+// pr : profil du PDF (null s'il est illisible) ; fiche : fiche déclarée (modification), sinon proposition de l'analyse
+function remplir(pr, p, fiche = null) {
+  const x = fiche || (pr ? pr.proposition : {});
+  $('pdId').value = x.id || ''; $('pdTitre').value = x.titre || ''; $('pdEditeur').value = x.editeur || '';
+  $('pdAnnee').value = x.annee || ''; $('pdVersion').value = x.version || ''; $('pdUrl').value = x.url || '';
+  $('pdLicence').value = x.licence || '';
+  $('pdLangue').value = x.langue || (p && p.langue) || 'fr'; $('pdFamille').value = x.famille || '';
+  for (const r of document.querySelectorAll('input[name="pdDiffusion"]'))
+    r.checked = !!x.diffusion && String(x.diffusion).startsWith(r.value);
+  $('pdFamilles').innerHTML = (p ? p.familles : []).map(f => `<option value="${esc(f)}">`).join('');
+  $('pdExtracteur').innerHTML = (p ? p.extracteurs : ['generique']).map(n =>
+    `<option ${n === x.extracteur ? 'selected' : ''}>${esc(n)}</option>`).join('');
+  const { ocr, ...autres } = x.options || {};
+  $('pdOptions').value = JSON.stringify(autres, null, 2);
+  const ocrOk = pr ? pr.ocr_disponible : true;
+  $('pdOcr').checked = !!ocr; $('pdOcr').disabled = !ocrOk && !ocr;
+  $('pdOcrAbsent').textContent = ocrOk ? '' : ' ocrmypdf est absent de cette machine : sudo apt install ocrmypdf tesseract-ocr-fra.';
+  if (!pr) { $('pdMentions').textContent = ''; $('pdProfil').innerHTML = `<b>${esc(ajout.fichier)}</b> — analyse du PDF impossible.`; return; }
+  $('pdMentions').innerHTML = pr.licences.length
+    ? 'Mentions trouvées dans le document : ' + pr.licences.map(l => `« ${esc(l)} »`).join(' · ')
+    : 'Aucune mention de licence trouvée dans le document.';
+  $('pdProfil').innerHTML = `<b>${esc(ajout.fichier)}</b> — ${nombre(pr.pages)} pages (${esc(pr.format)}),
+    ${nombre(pr.mots)} mots${pr.tableaux.length ? `, tableaux sur ${pr.tableaux.length} page(s)` : ''}.
+    ${fiche ? 'Analyse du PDF refaite ; la fiche ci-dessous est celle déclarée.' : 'Champs pré-remplis d\'après le PDF : à vérifier sur la page de garde.'}
+    ${pr.alertes.length ? `<ul>${pr.alertes.map(a => `<li><span class="etat moyen">${esc(a)}</span></li>`).join('')}</ul>` : ''}`;
+}
+
+async function ouvrirFiche(nom, id) {
+  const p = PROJETS.get(nom), base = urlProjet(nom);
+  ajout = { nom, fichier: null, edition: id, profil: null };
+  mode(id);
+  $('pdProjet').textContent = p ? p.titre : nom;
+  $('pdErreur1').textContent = ''; $('pdErreur2').textContent = '';
+  const r = await fetch(`${base}/documents/${encodeURIComponent(id)}/fiche`);
+  if (!r.ok) { $('message').textContent = `Fiche introuvable : ${id}`; return; }
+  const fiche = await r.json();
+  ajout.fichier = fiche.fichier;
+  const m = /^sources\/([^/]+\.pdf)$/.exec(fiche.fichier || '');
+  if (m) {                                 // analyse du PDF refaite à l'ouverture
+    const a = await fetch(`${base}/sources/${encodeURIComponent(m[1])}/profil`);
+    if (a.ok) ajout.profil = (await a.json()).profil;
+  }
+  remplir(ajout.profil, p, fiche);
+  $('pdProposer').disabled = !ajout.profil;
+  $('pdEtape1').hidden = true; $('formPdf').hidden = false;
+  $('dlgPdf').showModal(); $('pdTitre').focus();
+}
+
+$('pdProposer').addEventListener('click', () => {
+  const x = ajout.profil.proposition;
+  for (const [id, v] of [['pdTitre', x.titre], ['pdEditeur', x.editeur], ['pdAnnee', x.annee], ['pdLangue', x.langue]])
+    if (v) $(id).value = v;
+  const { ocr, ...autres } = x.options || {};
+  $('pdOptions').value = JSON.stringify(autres, null, 2); $('pdOcr').checked = !!ocr;
+});
+
+async function reanalyser(nom, id) {
+  const r = await fetch(`${urlProjet(nom)}/taches`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'ajout', documents: [id] }) });
+  const rep = await r.json().catch(() => ({}));
+  $('message').textContent = r.ok ? `Réanalyse de ${id} lancée : extraction, index, carte et contrôle (journal ci-dessous).`
+    : `Réanalyse refusée : ${detail(rep) || r.status}`;
+  ouverts.add(`journal-${nom}`);
+  charger();
+}
+
+$('pdId').addEventListener('input', () => { const i = $('pdId'); i.value = i.value.toUpperCase().replace(/[^A-Z0-9-]/g, '-'); });
+
+$('pdSupprimer').addEventListener('click', async () => {
+  const fichier = ajout.fichier.replace(/^sources\//, '');
+  if (!confirm(`Supprimer ${fichier} du dossier sources/ ?`)) return;
+  const r = await fetch(`${urlProjet(ajout.nom)}/sources/${encodeURIComponent(fichier)}`, { method: 'DELETE' });
+  if (!r.ok) { $('pdErreur2').textContent = detail(await r.json().catch(() => ({}))) || `erreur ${r.status}`; return; }
+  $('dlgPdf').close(); $('message').textContent = `${fichier} supprimé.`; charger();
+});
+
+$('formPdf').addEventListener('submit', async e => {
+  e.preventDefault();
+  let options;
+  try { options = JSON.parse($('pdOptions').value || '{}'); }
+  catch { $('pdErreur2').textContent = 'Options d\'extraction : JSON invalide.'; return; }
+  delete options.ocr;
+  if ($('pdOcr').checked) options.ocr = true;
+  const val = id => $(id).value.trim() || null;
+  const doc = { id: $('pdId').value.trim(), titre: $('pdTitre').value.trim(), editeur: $('pdEditeur').value.trim(),
+    annee: $('pdAnnee').value ? Number($('pdAnnee').value) : null, version: val('pdVersion'),
+    langue: $('pdLangue').value.trim(), url: val('pdUrl'), fichier: ajout.fichier, licence: $('pdLicence').value.trim(),
+    diffusion: document.querySelector('input[name="pdDiffusion"]:checked')?.value, famille: val('pdFamille'),
+    extracteur: $('pdExtracteur').value, options };
+  const base = urlProjet(ajout.nom), edition = ajout.edition;
+  if (edition && doc.id !== edition && !confirm(`Changer l'identifiant ${edition} en ${doc.id} ?\n\nLes citations ` +
+      `« ${edition}, p. N » deviennent « ${doc.id}, p. N » ; les passages sont réingérés sous le nouvel identifiant.`)) return;
+  const r = await fetch(edition ? `${base}/documents/${encodeURIComponent(edition)}` : `${base}/documents`,
+    { method: edition ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(doc) });
+  const rep = await r.json().catch(() => ({}));
+  if (!r.ok) { $('pdErreur2').textContent = detail(rep) || `erreur ${r.status}`; return; }
+  const t = await fetch(`${base}/taches`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'ajout', documents: [doc.id] }) });
+  const rt = await t.json().catch(() => ({}));
+  $('dlgPdf').close();
+  const fait = edition ? 'fiche enregistrée' : 'déclaré';
+  $('message').textContent = t.ok
+    ? `${doc.id} ${fait} ; ingestion, index, carte et contrôle en cours (journal ci-dessous).`
+    : `${doc.id} ${fait}, mais l'ingestion n'a pas pu démarrer : ${detail(rt) || t.status}. Relancer « Réanalyser » plus tard.`;
+  ouverts.add(`journal-${ajout.nom}`);
+  charger();
+});
+
+charger();
+</script>
+</body>
+</html>

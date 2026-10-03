@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Carte absente — __TITRE__</title>
+<style>
+:root { color-scheme: light; --fond:#f4f4f2; --surface:#fcfcfb; --texte:#0b0b0b; --discret:#6b6a66; --bord:#dcdbd6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark;
+  --fond:#111110; --surface:#1a1a19; --texte:#ffffff; --discret:#9a998f; --bord:#3a3a37; } }
+:root[data-theme="dark"] { color-scheme: dark; --fond:#111110; --surface:#1a1a19; --texte:#ffffff; --discret:#9a998f; --bord:#3a3a37; }
+body { margin:0; background:var(--fond); color:var(--texte); font:15px/1.5 system-ui, sans-serif; }
+nav.site { display:flex; align-items:center; gap:8px; padding:4px 16px; font-size:13px; color:var(--discret);
+  border-bottom:1px solid var(--bord); background:var(--surface); } nav.site b { color:var(--texte); }
+nav.site a { color:var(--discret); } nav.site a:hover { color:var(--texte); }
+nav.site .onglets { margin-left:auto; display:flex; gap:14px; } nav.site [aria-current] { color:var(--texte); font-weight:600; }
+main { max-width:640px; margin:48px auto; padding:0 16px; }
+</style>
+</head>
+<body>
+<nav class="site" aria-label="Pages du projet"><a href="/">Projets</a><span>›</span><b>__TITRE__</b>
+  <span class="onglets"><span aria-current="page">Carte</span><a href="essai">Essai de pertinence</a><a href="/docs">API</a></span></nav>
+<main>
+  <h1>La carte de ce projet n'est pas encore construite</h1>
+  <p>Depuis la <a href="/">page des projets</a>, lancer « Tout mettre à jour » sur <b>__TITRE__</b>
+    (ingestion, index de sens, puis carte), puis revenir ici.</p>
+</main>
+</body>
+</html>

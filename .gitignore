@@ -1,0 +1,20 @@
+# Projets de l'auteur : hors du dépôt du moteur (un projet à partager a son propre dépôt, dans son dossier).
+# Seul le modèle projets/exemple/ est versionné.
+projets/*
+!projets/exemple/
+# Du modèle comme de tout projet : sources (PDF, parfois sous droits) et tout ce qui se reconstruit
+# (base, index, carte, copies OCR, journaux des tâches, jugements de pertinence)
+projets/*/sources/
+projets/*/data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+build/
+.pytest_cache/
+
+# Réglages personnels
+.claude/settings.local.json
+.vscode/

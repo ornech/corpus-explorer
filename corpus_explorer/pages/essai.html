@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Essai de pertinence — __TITRE__</title>
+<style>
+/* Jetons : surfaces, encres, accent, statuts (jugements) et les 8 couleurs de documents (palette de référence
+   validée, ordre fixe = rang dans corpus.json). Au-delà du 8e document : gris neutre, nom toujours écrit. */
+:root {
+  color-scheme: light;
+  --fond:#f4f4f2; --surface:#fcfcfb; --carte:#ffffff; --texte:#0b0b0b; --texte-2:#52514e; --discret:#6b6a66;
+  --bord:#dcdbd6; --grille:#ebeae6; --accent:#2a78d6; --marque:#fff1b8;
+  --bon:#0ca30c; --moyen:#c98500; --mauvais:#d03b3b;
+  --d1:#2a78d6; --d2:#eb6834; --d3:#1baf7a; --d4:#eda100; --d5:#e87ba4; --d6:#008300; --d7:#4a3aa7; --d8:#e34948;
+  --dautre:#8f8e89; --part-sens:#2a78d6; --part-mots:#86b6ef;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --fond:#111110; --surface:#1a1a19; --carte:#21211f; --texte:#ffffff; --texte-2:#c3c2b7; --discret:#9a998f;
+  --bord:#3a3a37; --grille:#2c2c2a; --accent:#3987e5; --marque:#5a4a12;
+  --bon:#0ca30c; --moyen:#fab219; --mauvais:#d03b3b;
+  --d1:#3987e5; --d2:#d95926; --d3:#199e70; --d4:#c98500; --d5:#d55181; --d6:#008300; --d7:#9085e9; --d8:#e66767;
+  --dautre:#77766f; --part-sens:#3987e5; --part-mots:#184f95; } }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --fond:#111110; --surface:#1a1a19; --carte:#21211f; --texte:#ffffff; --texte-2:#c3c2b7; --discret:#9a998f;
+  --bord:#3a3a37; --grille:#2c2c2a; --accent:#3987e5; --marque:#5a4a12;
+  --bon:#0ca30c; --moyen:#fab219; --mauvais:#d03b3b;
+  --d1:#3987e5; --d2:#d95926; --d3:#199e70; --d4:#c98500; --d5:#d55181; --d6:#008300; --d7:#9085e9; --d8:#e66767;
+  --dautre:#77766f; --part-sens:#3987e5; --part-mots:#184f95; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--fond); color:var(--texte); font:15px/1.5 system-ui, sans-serif; }
+button, input, select { font:inherit; color:inherit; }
+.discret { color:var(--discret); font-size:13px; }
+header { background:var(--carte); border-bottom:1px solid var(--bord); padding:12px 16px; }
+header h1 { font-size:18px; margin:0 0 8px; }
+#formulaire { display:flex; gap:8px; }
+#q { flex:1; min-width:0; padding:9px 12px; border:1px solid var(--bord); border-radius:8px; background:var(--surface); font-size:16px; }
+.bouton { padding:8px 14px; border:1px solid var(--bord); border-radius:8px; background:var(--carte); cursor:pointer; }
+.bouton.principal { background:var(--accent); border-color:var(--accent); color:#fff; }
+#associes { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:8px; font-size:13px; }
+#associes:empty { display:none; }
+.puce { border:1px solid var(--bord); border-radius:999px; padding:2px 10px; background:var(--surface); cursor:pointer; font-size:13px; }
+.puce:hover { border-color:var(--accent); }
+.mise-en-page { display:grid; grid-template-columns:290px minmax(0,1fr); gap:16px; padding:16px; max-width:1600px; margin:0 auto; }
+aside.reglages { align-self:start; position:sticky; top:12px; background:var(--carte); border:1px solid var(--bord); border-radius:10px;
+        padding:12px 14px; max-height:calc(100vh - 24px); overflow:auto; }
+aside.reglages h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--texte-2); margin:14px 0 6px; }
+aside.reglages h2:first-child { margin-top:0; }
+fieldset { border:0; padding:0; margin:0; }
+.choix { display:flex; flex-direction:column; gap:3px; font-size:14px; }
+.choix label { display:flex; gap:7px; align-items:center; cursor:pointer; }
+.curseur { display:grid; grid-template-columns:auto 1fr auto; gap:6px; align-items:center; font-size:12px; color:var(--discret); }
+.curseur input { width:100%; }
+.valeur { font-size:13px; color:var(--texte-2); }
+.doc-ligne { display:grid; grid-template-columns:auto 12px 1fr auto; gap:6px; align-items:center; font-size:13px; }
+.carre { width:12px; height:12px; border-radius:3px; display:inline-block; flex:none; }
+.liens-petits { display:flex; gap:10px; font-size:12px; margin-top:4px; }
+.lien { background:none; border:0; padding:0; color:var(--accent); cursor:pointer; font-size:13px; }
+main { min-width:0; }
+.carte-bloc { background:var(--carte); border:1px solid var(--bord); border-radius:10px; padding:14px 16px; margin-bottom:14px; }
+.carte-bloc h2 { font-size:15px; margin:0 0 4px; }
+/* Synthèse : une ligne par document — barre (passages trouvés) et frise (où dans le document) */
+.synthese { display:grid; grid-template-columns:minmax(150px,auto) minmax(120px,1fr) minmax(200px,2fr); gap:6px 14px;
+            align-items:center; margin-top:10px; font-size:13px; }
+.synthese .entete { color:var(--discret); font-size:12px; }
+.nom-doc { display:flex; align-items:center; gap:6px; background:none; border:0; padding:0; cursor:pointer; text-align:left; }
+.nom-doc:hover span:last-child { text-decoration:underline; }
+.barre { display:flex; align-items:center; gap:6px; }
+.barre i { display:block; height:12px; border-radius:0 4px 4px 0; min-width:2px; }
+.barre b { font-weight:600; font-variant-numeric:tabular-nums; }
+.frise { position:relative; height:22px; }
+.frise::before { content:''; position:absolute; left:0; right:0; top:10px; height:2px; background:var(--grille); border-radius:1px; }
+.frise .trait { position:absolute; top:4px; width:2px; height:14px; border-radius:1px; opacity:.75; }
+.frise .point { position:absolute; top:5px; width:12px; height:12px; margin-left:-6px; border-radius:50%;
+                border:2px solid var(--carte); cursor:pointer; }
+.legende { display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12px; color:var(--discret); margin-top:8px; align-items:center; }
+.legende .ex-trait { display:inline-block; width:2px; height:12px; background:var(--texte-2); margin-right:5px; vertical-align:middle; }
+.legende .ex-point { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--texte-2); margin-right:5px; vertical-align:middle; }
+/* Recouvrement des deux recherches */
+.empile { display:flex; height:14px; gap:2px; margin:8px 0 4px; }
+.empile i { display:block; height:100%; }
+.empile i:first-child { border-radius:4px 0 0 4px; } .empile i:last-child { border-radius:0 4px 4px 0; }
+/* Résultats */
+.colonnes { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.colonnes h3, .groupe h3 { font-size:14px; margin:0 0 8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+article.resultat { position:relative; background:var(--carte); border:1px solid var(--bord); border-radius:9px;
+                   padding:10px 12px 10px 16px; margin-bottom:10px; overflow:hidden; }
+article.resultat::before { content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--couleur-doc); }
+article.resultat.pertinent { box-shadow:inset 0 0 0 2px var(--bon); }
+article.resultat.partiel { box-shadow:inset 0 0 0 2px var(--moyen); }
+article.resultat.hors-sujet { opacity:.6; }
+.r-entete { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; font-size:13px; }
+.r-entete b { font-size:14px; } .rang { color:var(--discret); margin-right:4px; }
+.badges { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
+.badge { font-size:11px; border:1px solid var(--bord); border-radius:4px; padding:0 6px; color:var(--texte-2); }
+.badge.deux { border-color:var(--accent); color:var(--accent); font-weight:600; }
+.score { display:flex; flex-direction:column; align-items:flex-end; gap:2px; min-width:96px; font-size:12px; color:var(--discret); }
+.score .piste { display:flex; gap:2px; width:90px; height:8px; background:var(--grille); border-radius:4px; overflow:hidden; }
+.score .piste i { display:block; height:100%; }
+.texte { margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+mark { background:var(--marque); color:inherit; padding:0 1px; border-radius:2px; }
+.actions { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; }
+.jugement { display:flex; gap:5px; margin-left:auto; }
+.jugement button { font-size:12px; padding:2px 8px; border:1px solid var(--bord); border-radius:6px; background:var(--carte); cursor:pointer; }
+.jugement button[aria-pressed="true"][data-j="pertinent"] { background:var(--bon); border-color:var(--bon); color:#fff; }
+.jugement button[aria-pressed="true"][data-j="partiel"] { background:var(--moyen); border-color:var(--moyen); color:#fff; }
+.jugement button[aria-pressed="true"][data-j="hors-sujet"] { background:var(--mauvais); border-color:var(--mauvais); color:#fff; }
+.contexte { border-top:1px dashed var(--bord); margin-top:8px; padding-top:6px; font-size:14px; }
+.contexte p { margin:4px 0; color:var(--discret); white-space:pre-wrap; overflow-wrap:anywhere; }
+.contexte p.courant { color:var(--texte); border-left:3px solid var(--accent); padding-left:8px; }
+.groupe { margin-bottom:16px; }
+.erreur { color:var(--mauvais); }
+/* Panneau « passages semblables » */
+#tiroir { position:fixed; top:0; right:0; bottom:0; width:min(560px, 100vw); background:var(--surface); border-left:1px solid var(--bord);
+          box-shadow:-8px 0 24px rgb(0 0 0 / .12); transform:translateX(100%); transition:transform .2s; z-index:20;
+          display:flex; flex-direction:column; }
+#tiroir.ouvert { transform:none; }
+#tiroir header { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+#tiroir .corps { overflow:auto; padding:12px 14px; }
+/* Bilan */
+.bilan { display:grid; grid-template-columns:auto 1fr auto; gap:6px 12px; align-items:center; font-size:13px; max-width:640px; }
+.bilan .piste { height:12px; background:var(--grille); border-radius:4px; position:relative; }
+.bilan .piste i { position:absolute; left:0; top:0; bottom:0; border-radius:0 4px 4px 0; background:var(--accent); }
+.bilan .piste i.p5 { background:var(--part-mots); top:3px; bottom:3px; }
+table.bilan-table { border-collapse:collapse; font-size:13px; margin-top:8px; }
+table.bilan-table th, table.bilan-table td { border:1px solid var(--bord); padding:3px 8px; text-align:left; }
+#infobulle { position:fixed; pointer-events:none; z-index:30; max-width:340px; background:var(--carte); color:var(--texte);
+             border:1px solid var(--bord); border-radius:6px; padding:6px 8px; font-size:12px; box-shadow:0 4px 14px rgb(0 0 0 / .15); display:none; }
+@media (max-width: 980px) { .mise-en-page { grid-template-columns:1fr; } aside.reglages { position:static; max-height:none; }
+  .colonnes { grid-template-columns:1fr; } .synthese { grid-template-columns:minmax(120px,auto) 1fr; }
+  .synthese .frise, .synthese .entete-frise { grid-column:1 / -1; } }
+nav.site { display:flex; align-items:center; gap:8px; padding:4px 16px; font-size:13px; color:var(--discret);
+  border-bottom:1px solid var(--bord); background:var(--surface); } nav.site b { color:var(--texte); }
+nav.site a { color:var(--discret); } nav.site a:hover { color:var(--texte); }
+nav.site .onglets { margin-left:auto; display:flex; gap:14px; } nav.site [aria-current] { color:var(--texte); font-weight:600; }
+</style>
+</head>
+<body>
+<nav class="site" aria-label="Pages du projet"><a href="/">Projets</a><span>›</span><b>__TITRE__</b>
+  <span class="onglets"><a href="carte">Carte</a><span aria-current="page">Essai de pertinence</span><a href="/docs">API</a></span></nav>
+<header>
+  <h1>Essai de pertinence</h1>
+  <form id="formulaire">
+    <input type="search" id="q" placeholder="Un sujet ou une phrase, ou quelques mots"
+           aria-label="Sujet ou phrase à chercher" required minlength="3">
+    <button class="bouton principal" type="submit">Chercher</button>
+  </form>
+  <div id="associes" aria-live="polite"></div>
+</header>
+
+<div class="mise-en-page">
+  <aside class="reglages" aria-label="Réglages de la recherche">
+    <h2>Affichage</h2>
+    <fieldset class="choix" id="vue">
+      <label><input type="radio" name="vue" value="fusion" checked> Liste fusionnée</label>
+      <label><input type="radio" name="vue" value="cote"> Côte à côte (mots | sens)</label>
+      <label><input type="radio" name="vue" value="documents"> Regroupée par document</label>
+    </fieldset>
+    <h2>Résultats par recherche</h2>
+    <select id="n" class="bouton" aria-label="Nombre de résultats"><option>5</option><option selected>10</option><option>20</option><option>30</option></select>
+    <h2>Dosage de la recherche par le sens</h2>
+    <div class="curseur"><span>mots</span><input type="range" id="alpha" min="0" max="1" step="0.1" value="0.7"
+      aria-label="Part du sens dans le score"><span>sens</span></div>
+    <div class="valeur" id="alpha-val"></div>
+    <h2>Longueur minimale d'un passage</h2>
+    <div class="curseur"><span>0</span><input type="range" id="min" min="0" max="200" step="10" value="60"
+      aria-label="Longueur minimale en caractères"><span>200</span></div>
+    <div class="valeur" id="min-val"></div>
+    <div class="choix" style="margin-top:6px"><label><input type="checkbox" id="titres"> inclure les titres</label></div>
+    <h2>Documents</h2>
+    <div id="liste-docs" class="choix"></div>
+    <div class="liens-petits"><button type="button" class="lien" id="docs-tous">tous</button>
+      <button type="button" class="lien" id="docs-fr">français seuls</button></div>
+    <h2>Types de passage</h2>
+    <div id="liste-types" class="choix"></div>
+    <div class="liens-petits" style="margin-top:12px"><button type="button" class="lien" id="reinit">réinitialiser les réglages</button></div>
+  </aside>
+
+  <main>
+    <section class="carte-bloc" id="bloc-synthese" hidden aria-labelledby="t-synthese">
+      <h2 id="t-synthese"></h2>
+      <div class="discret" id="sous-synthese"></div>
+      <div class="synthese" id="synthese"></div>
+      <div class="legende"><span><span class="ex-trait"></span>occurrence trouvée par les mots (position dans le document)</span>
+        <span><span class="ex-point"></span>résultat trouvé par le sens</span>
+        <span>Cliquer un document pour limiter la recherche à lui.</span></div>
+      <div id="recouvrement"></div>
+    </section>
+    <div id="resultats" aria-live="polite"></div>
+    <section class="carte-bloc" id="bloc-bilan" hidden aria-labelledby="t-bilan">
+      <h2 id="t-bilan">Bilan de vos jugements</h2>
+      <div class="discret">Pertinent = 1, partiel = 0,5, hors sujet = 0. Les jugements sont facultatifs : ils mesurent la précision
+        de chaque recherche sur tout ce que vous avez jugé (data/evaluations.jsonl).</div>
+      <div class="bilan" id="bilan" style="margin-top:10px"></div>
+      <details style="margin-top:8px"><summary class="discret">tableau</summary><div id="bilan-table"></div></details>
+    </section>
+  </main>
+</div>
+
+<aside id="tiroir" aria-label="Passages semblables" aria-hidden="true">
+  <header><div><h2 style="font-size:15px;margin:0">Passages semblables</h2><div class="discret" id="tiroir-source"></div></div>
+    <button type="button" class="bouton" id="tiroir-fermer">Fermer</button></header>
+  <div class="corps" id="tiroir-corps"></div>
+</aside>
+<div id="infobulle" role="tooltip"></div>
+
+<script>
+const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = t => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const TYPES = ['texte', 'liste', 'ligne-tableau', 'note', 'temoignage'];
+const DEFAUTS = { vue: 'fusion', n: '10', a: '0.7', min: '60', titres: '0', docs: '', types: '' };
+let DOCS = {};                       // id → {titre, nb_passages, rang, langue}
+let etat = { requete: '', mots: null, sens: null, semblables: [] };
+const jugements = {};
+
+const couleur = id => { const r = DOCS[id]?.rang; return r && r <= 8 ? `var(--d${r})` : 'var(--dautre)'; };
+const $ = id => document.getElementById(id);
+
+// ───────────── Réglages (dans l'adresse) ─────────────
+function lireReglages() {
+  const docs = [...document.querySelectorAll('#liste-docs input:checked')].map(x => x.value);
+  const types = [...document.querySelectorAll('#liste-types input:checked')].map(x => x.value);
+  return { vue: document.querySelector('#vue input:checked').value, n: $('n').value, a: $('alpha').value, min: $('min').value,
+           titres: $('titres').checked ? '1' : '0',
+           docs: docs.length === Object.keys(DOCS).length ? '' : docs.join(','),
+           types: types.length === TYPES.length ? '' : types.join(',') };
+}
+function appliquerReglages(r) {
+  r = { ...DEFAUTS, ...r };
+  (document.querySelector(`#vue input[value="${r.vue}"]`) || document.querySelector('#vue input')).checked = true;
+  $('n').value = r.n; $('alpha').value = r.a; $('min').value = r.min; $('titres').checked = r.titres === '1';
+  const docs = r.docs ? r.docs.split(',') : null, types = r.types ? r.types.split(',') : null;
+  document.querySelectorAll('#liste-docs input').forEach(x => x.checked = !docs || docs.includes(x.value));
+  document.querySelectorAll('#liste-types input').forEach(x => x.checked = !types || types.includes(x.value));
+  valeurs();
+}
+function valeurs() {
+  const a = +$('alpha').value;
+  $('alpha-val').textContent = a === 1 ? 'sens seul' : a === 0 ? 'mots communs seuls (synonymes validés compris)' :
+    `${Math.round(a * 100)} % sens, ${Math.round((1 - a) * 100)} % mots communs`;
+  $('min-val').textContent = +$('min').value ? `au moins ${$('min').value} caractères (écarte intertitres et sommaires)` : 'aucune limite';
+}
+function adresse() {
+  const r = lireReglages(), p = new URLSearchParams({ q: $('q').value.trim() });
+  Object.entries(r).forEach(([k, v]) => { if (v !== DEFAUTS[k]) p.set(k, v); });
+  history.replaceState(null, '', '?' + p);
+}
+
+// ───────────── Recherche ─────────────
+function parametres(r) {
+  const p = new URLSearchParams({ q: etat.requete, limite: r.n, titres: r.titres === '1', min_car: r.min });
+  if (r.docs) r.docs.split(',').forEach(d => p.append('documents', d));
+  if (r.types) r.types.split(',').forEach(t => p.append('types', t));
+  return p;
+}
+async function chercher(ev) {
+  ev?.preventDefault();
+  etat.requete = $('q').value.trim();
+  if (etat.requete.length < 3) return;
+  adresse();
+  Object.keys(jugements).forEach(k => delete jugements[k]);
+  const r = lireReglages(), p = parametres(r), ps = new URLSearchParams(p); ps.set('alpha', r.a);
+  $('resultats').innerHTML = '<p class="discret">Recherche…</p>';
+  const [a, b, t] = await Promise.all([fetch('recherche?' + p), fetch('recherche-sens?' + ps),
+    fetch('termes-associes?' + new URLSearchParams({ q: etat.requete }))]);
+  etat.mots = a.ok ? await a.json() : { erreur: (await a.json()).detail, passages: [], par_document: [] };
+  etat.sens = b.ok ? await b.json() : { erreur: (await b.json()).detail, passages: [] };
+  associes(t.ok ? await t.json() : []);
+  synthese();
+  afficher(r);
+}
+
+// ───────────── Termes associés ─────────────
+function associes(termes) {
+  const z = $('associes');
+  if (!termes.length) { z.innerHTML = ''; return; }
+  z.innerHTML = '<span class="discret">Essayer aussi :</span>' + termes.flatMap(t => t.associes.map(a =>
+    `<button type="button" class="puce" data-de="${esc(t.terme)}" data-vers="${esc(a)}"
+      title="${t.nature === 'support' ? 'synonyme validé de' : 'formulation ramenée à'} « ${esc(t.canonique)} »">${esc(a)}</button>`)).join('');
+  z.querySelectorAll('.puce').forEach(b => b.onclick = () => {
+    const q = $('q').value, i = norm(q).indexOf(norm(b.dataset.de));
+    $('q').value = i >= 0 ? q.slice(0, i) + b.dataset.vers + q.slice(i + b.dataset.de.length) : b.dataset.vers;
+    chercher();
+  });
+}
+
+// ───────────── Synthèse graphique ─────────────
+function synthese() {
+  $('bloc-synthese').hidden = false;
+  const m = etat.mots, s = etat.sens;
+  $('t-synthese').textContent = `Où les sources parlent-elles de « ${etat.requete} » ?`;
+  $('sous-synthese').textContent = (m.erreur ? `Mots : ${m.erreur} ` : `${m.total} passage(s) contiennent les mots, dans ${m.par_document.length} document(s) ; `)
+    + (s.erreur ? `Sens : ${s.erreur}` : `${s.passages.length} résultat(s) par le sens.`);
+  const lignes = {};
+  m.par_document.forEach(c => lignes[c.document_id] = { n: c.n, ordres: c.ordres, sens: [] });
+  s.passages.forEach(p => (lignes[p.document_id] ||= { n: 0, ordres: [], sens: [] }).sens.push(p));
+  const ids = Object.keys(lignes).sort((x, y) => lignes[y].n - lignes[x].n || lignes[y].sens.length - lignes[x].sens.length);
+  const max = Math.max(1, ...ids.map(d => lignes[d].n));
+  $('synthese').innerHTML = ids.length ? `<span class="entete">Document</span><span class="entete">Passages trouvés par les mots</span>
+    <span class="entete entete-frise">Position dans le document (début → fin)</span>` + ids.map(d => {
+      const l = lignes[d], tot = DOCS[d]?.nb_passages || 1, c = couleur(d);
+      return `<button type="button" class="nom-doc" data-doc="${esc(d)}" data-info="${esc(DOCS[d]?.titre || '')}">
+          <span class="carre" style="background:${c}"></span><span>${esc(d)}</span></button>
+        <span class="barre" data-info="${esc(d)} : ${l.n} passage(s) contiennent les mots">
+          <i style="width:${(l.n / max * 100).toFixed(1)}%;background:${c}"></i><b>${l.n}</b></span>
+        <span class="frise">${l.ordres.map(o => `<span class="trait" style="left:${(o / tot * 100).toFixed(2)}%;background:${c}"
+            data-info="${esc(d)} — passage ${o} sur ${tot} (trouvé par les mots)"></span>`).join('')}${l.sens.map(p =>
+          `<span class="point" style="left:${(p.ordre / tot * 100).toFixed(2)}%;background:${c}" data-id="${p.id}"
+            data-info="${esc(p.citation)} (par le sens) — ${esc(p.texte.slice(0, 160))}"></span>`).join('')}</span>`; }).join('')
+    : '<span class="discret">Aucun document.</span>';
+  $('synthese').querySelectorAll('.nom-doc').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#liste-docs input').forEach(x => x.checked = x.value === b.dataset.doc); chercher(); });
+  $('synthese').querySelectorAll('.point').forEach(x => x.onclick = () =>
+    document.querySelector(`#resultats [data-pid="${x.dataset.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  // Recouvrement des deux listes affichées
+  const im = new Set(m.passages.map(p => p.id)), is = new Set(s.passages.map(p => p.id));
+  const deux = [...im].filter(i => is.has(i)).length, motsSeuls = im.size - deux, sensSeul = is.size - deux, tot = im.size + sensSeul || 1;
+  $('recouvrement').innerHTML = (im.size || is.size) ? `<div class="discret" style="margin-top:12px">Recouvrement des deux recherches
+    (résultats affichés) : <b>${deux}</b> trouvés par les deux, <b>${motsSeuls}</b> par les mots seuls, <b>${sensSeul}</b> par le sens seul.</div>
+    <div class="empile" role="img" aria-label="${deux} par les deux, ${motsSeuls} par les mots seuls, ${sensSeul} par le sens seul">
+      ${deux ? `<i style="width:${deux / tot * 100}%;background:var(--accent)" data-info="trouvés par les deux : ${deux}"></i>` : ''}
+      ${motsSeuls ? `<i style="width:${motsSeuls / tot * 100}%;background:var(--texte-2)" data-info="mots seuls : ${motsSeuls}"></i>` : ''}
+      ${sensSeul ? `<i style="width:${sensSeul / tot * 100}%;background:var(--part-mots)" data-info="sens seul : ${sensSeul}"></i>` : ''}</div>
+    <div class="legende"><span><span class="carre" style="background:var(--accent)"></span> les deux</span>
+      <span><span class="carre" style="background:var(--texte-2)"></span> mots seuls</span>
+      <span><span class="carre" style="background:var(--part-mots)"></span> sens seul</span></div>` : '';
+}
+
+// ───────────── Résultats ─────────────
+// Fusion par rangs réciproques (k = 60) ; un passage de même texte qu'un autre n'apparaît qu'une fois (×n)
+function fusion() {
+  const parId = {};
+  etat.mots.passages.forEach((p, i) => (parId[p.id] ||= { p }).rang_mots = i + 1);
+  etat.sens.passages.forEach((p, i) => { const e = (parId[p.id] ||= { p }); e.rang_sens = i + 1; e.p = { ...e.p, ...p }; });
+  Object.values(parId).forEach(e => e.score = (e.rang_mots ? 1 / (60 + e.rang_mots) : 0) + (e.rang_sens ? 1 / (60 + e.rang_sens) : 0));
+  return dedoublonner(Object.values(parId).sort((a, b) => b.score - a.score));
+}
+function dedoublonner(liste) {
+  const vus = {}, out = [];
+  liste.forEach(e => { const k = norm(e.p.texte).replace(/\s+/g, ' ').trim();
+    if (vus[k]) vus[k].doublons.push(e.p.citation); else { e.doublons = []; vus[k] = e; out.push(e); } });
+  return out;
+}
+function afficher(r) {
+  const z = $('resultats'), m = etat.mots, s = etat.sens;
+  const err = x => x.erreur ? `<p class="erreur">${esc(x.erreur)}</p>` : '';
+  if (r.vue === 'cote') {
+    const col = (titre, x, mode, cle) => `<section><h3>${titre}</h3>${err(x)}${
+      dedoublonner(x.passages.map((p, i) => ({ p, [cle]: i + 1 }))).map((e, i) => carte(e, i + 1, mode)).join('')
+      || (x.erreur ? '' : '<p class="discret">Aucun résultat.</p>')}</section>`;
+    z.innerHTML = `<div class="colonnes">${col('Par les mots', m, 'plein-texte', 'rang_mots')}${
+      col(`Par le sens <span class="discret">${esc(s.representation || '')}</span>`, s, 'sens', 'rang_sens')}</div>`;
+  } else {
+    const liste = fusion();
+    if (r.vue === 'fusion') z.innerHTML = err(m) + err(s) + `<h3 style="font-size:14px;margin:4px 0 8px">Liste fusionnée
+      <span class="discret">${liste.length} passage(s) — en tête, ceux que les deux recherches trouvent</span></h3>` +
+      (liste.map((e, i) => carte(e, i + 1, 'fusion')).join('') || '<p class="discret">Aucun résultat.</p>');
+    else {
+      const groupes = {}; liste.forEach(e => (groupes[e.p.document_id] ||= []).push(e));
+      z.innerHTML = err(m) + err(s) + (Object.entries(groupes).sort((a, b) => b[1].length - a[1].length).map(([d, es]) =>
+        `<section class="groupe"><h3><span class="carre" style="background:${couleur(d)}"></span>${esc(d)}
+          <span class="discret">${esc(DOCS[d]?.titre || '')} — ${es.length} résultat(s)</span></h3>
+          ${es.map((e, i) => carte(e, i + 1, 'fusion')).join('')}</section>`).join('') || '<p class="discret">Aucun résultat.</p>');
+    }
+  }
+  brancher(z);
+}
+function surligner(texte, q) {
+  const mots = [...new Set(norm(q).split(/[^a-z0-9]+/).filter(m => m.length >= 4))], brut = norm(texte), zones = [];
+  mots.forEach(m => { let i = brut.indexOf(m); while (i >= 0) { if (i === 0 || !/[a-z0-9]/.test(brut[i - 1])) zones.push([i, i + m.length]);
+    i = brut.indexOf(m, i + 1); } });
+  zones.sort((a, b) => a[0] - b[0]); let out = '', pos = 0;
+  for (const [d, f] of zones) { if (d < pos) continue; out += esc(texte.slice(pos, d)) + '<mark>' + esc(texte.slice(d, f)) + '</mark>'; pos = f; }
+  return out + esc(texte.slice(pos));
+}
+function carte(e, rang, mode) {
+  const p = e.p, cle = `${mode}|${p.id}`, j = jugements[cle] || '', long = p.texte.length > 450;
+  const badges = mode !== 'fusion' ? '' : (e.rang_mots && e.rang_sens ? `<span class="badge deux">mots + sens</span>` :
+    e.rang_mots ? `<span class="badge">mots seuls</span>` : `<span class="badge">sens seul</span>`) +
+    (e.rang_mots ? `<span class="badge">#${e.rang_mots} mots</span>` : '') + (e.rang_sens ? `<span class="badge">#${e.rang_sens} sens</span>` : '');
+  const a = +(etat.sens.alpha ?? 0.7);
+  const score = p.score_sens !== undefined ? `<div class="score" data-info="score ${p.score.toFixed(3)} = ${a} × sens ${p.score_sens.toFixed(3)} + ${
+      (1 - a).toFixed(1)} × mots communs ${p.score_lexical.toFixed(3)}"><span>score ${p.score.toFixed(2)}</span>
+    <span class="piste"><i style="width:${(a * p.score_sens * 100).toFixed(1)}%;background:var(--part-sens)"></i><i
+      style="width:${((1 - a) * p.score_lexical * 100).toFixed(1)}%;background:var(--part-mots)"></i></span></div>` : '';
+  return `<article class="resultat ${j}" data-cle="${cle}" data-pid="${p.id}" style="--couleur-doc:${couleur(p.document_id)}">
+    <div class="r-entete"><div><span class="rang">${rang}.</span><b>${esc(p.citation)}</b>
+      <span class="discret"> · ${esc(p.type)}${p.section ? ' · ' + esc(p.section).slice(0, 60) : ''}</span>
+      <div class="badges">${badges}${e.doublons?.length ? `<span class="badge" data-info="${esc(e.doublons.join(' ; '))}">×${e.doublons.length + 1} texte identique</span>` : ''}</div></div>${score}</div>
+    <div class="texte">${surligner(long ? p.texte.slice(0, 450) + '…' : p.texte, etat.requete)}</div>
+    <div class="actions">${long ? '<button type="button" class="lien voir">voir tout</button>' : ''}
+      <button type="button" class="lien ctx" aria-expanded="false">voir le contexte</button>
+      <button type="button" class="lien semblables">passages semblables</button>
+      <span class="jugement" role="group" aria-label="Pertinence du résultat ${rang}">${['pertinent', 'partiel', 'hors-sujet'].map(x =>
+        `<button type="button" data-j="${x}" data-rang="${rang}" aria-pressed="${j === x}">${{ pertinent: '✓ Pertinent', partiel: '~ Partiel', 'hors-sujet': '✗ Hors sujet' }[x]}</button>`).join('')}</span></div>
+    <div class="contexte" hidden></div></article>`;
+}
+const passageParId = id => [...etat.mots.passages, ...etat.sens.passages, ...etat.semblables].find(p => String(p.id) === String(id));
+function brancher(zone) {
+  zone.querySelectorAll('article.resultat').forEach(art => {
+    const [mode, pid] = art.dataset.cle.split('|'), p = passageParId(pid);
+    art.querySelector('.voir')?.addEventListener('click', ev => { art.querySelector('.texte').innerHTML = surligner(p.texte, etat.requete); ev.target.remove(); });
+    art.querySelector('.ctx').onclick = ev => contexte(p, art, ev.target);
+    art.querySelector('.semblables').onclick = () => semblables(p);
+    art.querySelectorAll('.jugement button').forEach(b => b.onclick = () => juger(mode, p, +b.dataset.rang, b.dataset.j, art));
+  });
+}
+
+// ───────────── Contexte, semblables, jugements ─────────────
+async function contexte(p, art, bouton) {
+  const z = art.querySelector('.contexte');
+  if (!z.hidden) { z.hidden = true; bouton.textContent = 'voir le contexte'; bouton.setAttribute('aria-expanded', 'false'); return; }
+  if (!z.innerHTML) {
+    const r = await fetch(`passages/${p.id}/contexte?avant=2&apres=6`);
+    if (!r.ok) z.innerHTML = '<p class="erreur">Contexte indisponible.</p>';
+    else { const c = await r.json(), l = (x, cour) => `<p class="${cour ? 'courant' : ''}" ${x.type === 'titre' ? 'style="font-weight:600"' : ''}>${
+      cour ? surligner(x.texte, etat.requete) : esc(x.texte)} <span class="discret">(p. ${esc(x.page)})</span></p>`;
+      z.innerHTML = c.avant.map(x => l(x)).join('') + l(c.passage, true) + c.apres.map(x => l(x)).join(''); }
+  }
+  z.hidden = false; bouton.textContent = 'masquer le contexte'; bouton.setAttribute('aria-expanded', 'true');
+}
+async function semblables(p) {
+  const t = $('tiroir'), r = lireReglages();
+  t.classList.add('ouvert'); t.setAttribute('aria-hidden', 'false');
+  $('tiroir-source').innerHTML = `${esc(p.citation)} — « ${esc(p.texte.slice(0, 140))}${p.texte.length > 140 ? '…' : ''} »`;
+  $('tiroir-corps').innerHTML = '<p class="discret">Recherche…</p>';
+  const q = new URLSearchParams({ limite: r.n, alpha: r.a, min_car: r.min, titres: r.titres === '1' });
+  if (r.docs) r.docs.split(',').forEach(d => q.append('documents', d));
+  const rep = await fetch(`passages/${p.id}/semblables?` + q);
+  if (!rep.ok) { $('tiroir-corps').innerHTML = `<p class="erreur">${esc((await rep.json()).detail)}</p>`; return; }
+  const d = await rep.json(); etat.semblables = d.passages;
+  $('tiroir-corps').innerHTML = `<p class="discret">${esc(d.representation)} — documents cochés, texte identique exclu.</p>` +
+    (dedoublonner(d.passages.map((x, i) => ({ p: x, rang_sens: i + 1 }))).map((e, i) => carte(e, i + 1, 'sens')).join('') || '<p class="discret">Aucun.</p>');
+  brancher($('tiroir-corps'));
+}
+$('tiroir-fermer').onclick = () => { $('tiroir').classList.remove('ouvert'); $('tiroir').setAttribute('aria-hidden', 'true'); };
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') $('tiroir-fermer').click(); });
+async function juger(mode, p, rang, j, art) {
+  const r = await fetch('evaluations', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requete: etat.requete, mode, passage_id: p.id, rang, jugement: j }) });
+  if (!r.ok) { alert('Jugement non enregistré : ' + (await r.json()).detail); return; }
+  jugements[`${mode}|${p.id}`] = j;
+  art.classList.remove('pertinent', 'partiel', 'hors-sujet'); art.classList.add(j);
+  art.querySelectorAll('.jugement button').forEach(b => b.setAttribute('aria-pressed', b.dataset.j === j));
+  bilan();
+}
+async function bilan() {
+  const r = await fetch('evaluations/bilan'); if (!r.ok) return;
+  const b = await r.json(), nom = { 'plein-texte': 'Par les mots', sens: 'Par le sens', fusion: 'Liste fusionnée' };
+  $('bloc-bilan').hidden = !b.length;
+  $('bilan').innerHTML = b.map(x => `<span>${nom[x.mode] || x.mode} <span class="discret">(${x.requetes} req., ${x.jugements} jug.)</span></span>
+    <span class="piste" data-info="précision ${Math.round(x.precision * 100)} % ; sur les 5 premiers ${Math.round(x.precision_5 * 100)} %">
+      <i style="width:${x.precision * 100}%"></i><i class="p5" style="width:${x.precision_5 * 100}%"></i></span>
+    <b>${Math.round(x.precision * 100)} %</b>`).join('') +
+    (b.length ? `<span></span><span class="legende" style="margin:0"><span><span class="carre" style="background:var(--accent)"></span> précision</span>
+      <span><span class="carre" style="background:var(--part-mots)"></span> sur les 5 premiers</span></span><span></span>` : '');
+  $('bilan-table').innerHTML = `<table class="bilan-table"><tr><th>Recherche</th><th>Requêtes</th><th>Jugements</th><th>Précision</th><th>5 premiers</th></tr>${
+    b.map(x => `<tr><td>${nom[x.mode] || x.mode}</td><td>${x.requetes}</td><td>${x.jugements}</td><td>${Math.round(x.precision * 100)} %</td><td>${Math.round(x.precision_5 * 100)} %</td></tr>`).join('')}</table>`;
+}
+
+// ───────────── Infobulle ─────────────
+const bulle = $('infobulle');
+document.addEventListener('mousemove', ev => {
+  const c = ev.target.closest('[data-info]');
+  if (!c || !c.dataset.info) { bulle.style.display = 'none'; return; }
+  bulle.textContent = c.dataset.info; bulle.style.display = 'block';
+  bulle.style.left = Math.min(ev.clientX + 14, innerWidth - bulle.offsetWidth - 8) + 'px';
+  bulle.style.top = Math.min(ev.clientY + 14, innerHeight - bulle.offsetHeight - 8) + 'px';
+});
+
+// ───────────── Démarrage ─────────────
+async function demarrer() {
+  const ds = await (await fetch('documents')).json();
+  ds.sort((a, b) => (a.rang ?? 99) - (b.rang ?? 99)).forEach(d => DOCS[d.id] = d);
+  $('liste-docs').innerHTML = ds.map(d => `<label class="doc-ligne" data-info="${esc(d.titre)}"><input type="checkbox" value="${esc(d.id)}" checked>
+    <span class="carre" style="background:${couleur(d.id)}"></span><span>${esc(d.id)}</span><span class="discret">${d.nb_passages}</span></label>`).join('');
+  $('liste-types').innerHTML = TYPES.map(t => `<label><input type="checkbox" value="${t}" checked> ${t}</label>`).join('');
+  const u = new URLSearchParams(location.search);
+  appliquerReglages(Object.fromEntries(Object.keys(DEFAUTS).filter(k => u.has(k)).map(k => [k, u.get(k)])));
+  $('formulaire').addEventListener('submit', chercher);
+  // Tout réglage relance la recherche, sauf l'affichage, qui réutilise les résultats
+  document.querySelectorAll('#vue input').forEach(x => x.onchange = () => { adresse(); if (etat.mots) afficher(lireReglages()); });
+  ['n', 'titres'].forEach(i => $(i).onchange = () => chercher());
+  ['alpha', 'min'].forEach(i => { $(i).oninput = valeurs; $(i).onchange = () => chercher(); });
+  $('liste-docs').onchange = $('liste-types').onchange = () => chercher();
+  $('docs-tous').onclick = () => { document.querySelectorAll('#liste-docs input').forEach(x => x.checked = true); chercher(); };
+  $('docs-fr').onclick = () => { document.querySelectorAll('#liste-docs input').forEach(x => x.checked = DOCS[x.value].langue === 'fr'); chercher(); };
+  $('reinit').onclick = () => { appliquerReglages({}); chercher(); };
+  bilan();
+  if (u.get('q')) { $('q').value = u.get('q'); chercher(); }
+}
+demarrer();
+</script>
+</body>
+</html>
